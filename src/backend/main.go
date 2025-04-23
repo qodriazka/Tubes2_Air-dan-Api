@@ -8,6 +8,7 @@ import (
 
 func main() {
 	r := router.SetupRouter()
-	log.Println("Server running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	port := ":8080"
+	log.Printf("Starting server on http://localhost%s\n", port)
+	log.Fatal(http.ListenAndServe(port, r))
 }
