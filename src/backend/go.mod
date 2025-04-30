@@ -3,8 +3,13 @@ module tubes2
 go 1.24.2
 
 require (
-	github.com/PuerkitoBio/goquery v1.10.3 // indirect
+	github.com/PuerkitoBio/goquery v1.10.3
+	github.com/gorilla/mux v1.8.1
+)
+
+require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect
+<<<<<<< HEAD
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
@@ -28,6 +33,8 @@ require (
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
+=======
+>>>>>>> a603206b2ca09699f3aa69f0e4a44a393829be48
 	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
