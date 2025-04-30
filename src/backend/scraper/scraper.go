@@ -1,80 +1,111 @@
 package scraper
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gin-gonic/gin"
 )
 
-// ScrapeElements function to scrape all elements and their recipes
-func ScrapeElements() ([]map[string]interface{}, error) {
-	// URL halaman wiki Little Alchemy 2
-	url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)"
+// Fungsi untuk melakukan scraping dan menyimpan data dalam file JSON
+func ScrapeElements(c *gin.Context) {
+	// URL yang ingin di-scrape
+	url := "https://little-alchemy.fandom.com/wiki/Elements_(Little_Alchemy_2)#List_of_elements" // Ganti dengan URL yang sesuai
 
-	// Lakukan request ke halaman web
+	// Mengambil konten HTML dari URL
 	res, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch page: %v", err)
+		log.Println("Failed to fetch the page:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch the page",
+		})
+		return
 	}
 	defer res.Body.Close()
 
-	// Pastikan response OK (status 200)
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to fetch page, status code: %d", res.StatusCode)
-	}
-
-	// Parse HTML dari response menggunakan goquery
+	// Mem-parsing HTML dengan Goquery
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse HTML: %v", err)
+		log.Println("Failed to parse the page:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to parse the page",
+		})
+		return
 	}
 
-	// Slice untuk menyimpan data elemen dan resep
-	var elements []map[string]interface{}
+	// Menyimpan data elemen dan resep dalam map
+	elementsRecipes := make(map[string][][2]string)
 
-	// Loop untuk mencari elemen-elemen pada halaman
-	doc.Find(".wikitable tbody tr").Each(func(i int, s *goquery.Selection) {
-		// Ambil kolom pertama untuk nama elemen
-		element := s.Find("td").Eq(0).Text()
-		element = strings.TrimSpace(element)
+	// Menemukan tabel yang berisi elemen dan resep
+	doc.Find("table.list-table.col-list.icon-hover tr").Each(func(i int, row *goquery.Selection) {
+		// Mengabaikan header tabel
+		if i > 0 {
+			// Mengambil nama elemen
+			element := row.Find("td").Eq(0).Text()
+			element = strings.TrimSpace(element) // Menghapus spasi yang tidak perlu
 
-		// Jika elemen kosong, skip
-		if element == "" {
-			return
+			// Mengambil resep dari elemen tersebut
+			var recipes [][2]string
+			var prevRecipe string
+
+			row.Find("td").Eq(1).Find("a").Each(func(j int, link *goquery.Selection) {
+				recipe := link.Text()
+				recipe = strings.TrimSpace(recipe) // Menghapus spasi yang tidak perlu
+				// Hanya menambahkan pasangan bahan jika resep tidak kosong
+				if recipe != "" {
+					// Jika sudah ada bahan sebelumnya, buat pasangan
+					if prevRecipe != "" {
+						recipes = append(recipes, [2]string{prevRecipe, recipe})
+						prevRecipe = "" // Reset bahan sebelumnya
+					} else {
+						// Jika belum ada pasangan, simpan bahan pertama
+						prevRecipe = recipe
+					}
+				}
+			})
+
+			// Menyimpan pasangan elemen dan resep dalam map hanya jika pasangan lengkap
+			if len(recipes) > 0 {
+				elementsRecipes[element] = recipes
+			}
 		}
-
-		// Ambil resep di kolom kedua (jika ada)
-		recipes := s.Find("td").Eq(1).Text()
-		recipes = strings.TrimSpace(recipes)
-
-		// Jika tidak ada resep, skip
-		if recipes == "" {
-			return
-		}
-
-		// Simpan data dalam bentuk map
-		elements = append(elements, map[string]interface{}{
-			"element": element,
-			"recipes": recipes,
-		})
 	})
 
-	return elements, nil
+	// Menyimpan data ke file JSON
+	err = saveToJSON(elementsRecipes)
+	if err != nil {
+		log.Println("Failed to save data:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to save the data",
+		})
+		return
+	}
+
+	// Mengembalikan hasil dalam format JSON
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Scraping successful, data saved to file.",
+	})
 }
 
-func main() {
-	// Memanggil fungsi ScrapeElements
-	elements, err := ScrapeElements()
+// Fungsi untuk menyimpan data elemen dan resep dalam file JSON
+func saveToJSON(data map[string][][2]string) error {
+	// Menyusun file JSON
+	file, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	// Menampilkan hasil scraping
-	for _, element := range elements {
-		fmt.Printf("Element: %s\n", element["element"])
-		fmt.Printf("Recipes: %s\n\n", element["recipes"])
+	// Menyimpan ke dalam file menggunakan os.WriteFile
+	err = os.WriteFile("scraped_recipes.json", file, 0644)
+	if err != nil {
+		return err
 	}
+
+	fmt.Println("Data successfully saved to scraped_recipes.json")
+	return nil
 }
