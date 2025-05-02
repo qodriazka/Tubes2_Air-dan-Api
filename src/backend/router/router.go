@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-	"tubes2/scraper" // Mengimpor package scraper yang benar
+	"tubes2/scraper" 
 	"tubes2/search"
 	"tubes2/utils"
 	"github.com/gin-gonic/gin"
@@ -35,7 +35,7 @@ func SetupRouter(g *utils.Graph) *gin.Engine {
 			return
 		}
 
-		if _, ok := g.Adj[start]; !ok {
+		if _, ok := g.IDs[start]; !ok {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "`start` element not found"})
 			return
 		}
@@ -51,7 +51,7 @@ func SetupRouter(g *utils.Graph) *gin.Engine {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "`max` must be a positive integer"})
 				return
 			}
-			paths := search.FindMultiplePaths(g, start, target, algo, max)
+			paths := search.FindMultiplePathsInt(g, start, target, algo, max)
 			c.JSON(http.StatusOK, gin.H{
 				"paths":	paths,
 				"count":	len(paths),
@@ -65,9 +65,9 @@ func SetupRouter(g *utils.Graph) *gin.Engine {
 		  dur     time.Duration
 		)
 		if algo == "dfs" {
-		  path, visited, dur = search.DFS(g, start, target)
+		  path, visited, dur = search.DFSInt(g, start, target)
 		} else {
-		  path, visited, dur = search.BFS(g, start, target)
+		  path, visited, dur = search.BFSInt(g, start, target)
 		}
 	
 		c.JSON(http.StatusOK, gin.H{

@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	g, err := utils.LoadAndBuildGraph("scraped_recipes.json")
+	g, err := utils.NewGraphFromJSON("scraped_recipes.json")
 	if err != nil {
 	  log.Fatalf("Failed to load graph: %v", err)
 	}
