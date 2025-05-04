@@ -1,11 +1,10 @@
 import React, { useState } from "react";
-import { useRouter } from "next/router";
-import { fetchRecipes } from "../utils/api"; 
+import { fetchRecipes } from "../utils/api";
 
 const RecipeForm = ({ setRecipeData }) => {
   const [start, setStart] = useState("Water");
   const [target, setTarget] = useState("");
-  const [algo, setAlgo] = useState("bfs");
+  const [algo, setAlgo] = useState("bfs");  // Defaultnya BFS
   const [mode, setMode] = useState("multiple");
   const [max, setMax] = useState(3);
   const [error, setError] = useState(null);
@@ -20,8 +19,8 @@ const RecipeForm = ({ setRecipeData }) => {
 
     try {
       const response = await fetchRecipes(start, target, algo, mode, max);
-      setRecipeData(response); // Menyimpan data hasil pencarian ke state parent
-      setError(null); 
+      setRecipeData(response);  
+      setError(null);  
     } catch (err) {
       setError("An error occurred while fetching the recipe.");
     }
@@ -53,6 +52,7 @@ const RecipeForm = ({ setRecipeData }) => {
           <select value={algo} onChange={(e) => setAlgo(e.target.value)}>
             <option value="bfs">BFS</option>
             <option value="dfs">DFS</option>
+            <option value="bidirectional">Bidirectional</option> {/* Menambahkan opsi Bidirectional */}
           </select>
         </label>
         <br />
