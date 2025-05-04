@@ -44,3 +44,22 @@ func TestDFS(t *testing.T) {
 		t.Error("DFS visited should be > 0")
 	}
 }
+
+func TestBidirectionalSearch(t *testing.T) {
+	jsonPath := filepath.Join("test", "fixture.json")
+	g, err := utils.LoadAndBuildGraph(jsonPath)
+	if err != nil {
+		t.Fatalf("LoadAndBuildGraph failed: %v", err)
+	}
+
+	path, visited, _ := search.BidirectionalSearch(g, "A", "C")
+	if len(path) == 0 {
+		t.Fatal("Expected a non-empty path for Bidirectional Search")
+	}
+	if path[len(path)-1] != "C" {
+		t.Errorf("Bidirectional Search target mismatch: got %v", path)
+	}
+	if visited <= 0 {
+		t.Error("Bidirectional Search visited should be > 0")
+	}
+}
