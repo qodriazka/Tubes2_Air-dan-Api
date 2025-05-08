@@ -9,12 +9,12 @@ import (
 
 func TestBFS(t *testing.T) {
 	jsonPath := filepath.Join("test", "fixture.json")
-	g, err := utils.LoadAndBuildGraph(jsonPath)
+	g, err := utils.NewGraphFromJSON(jsonPath)
 	if err != nil {
-		t.Fatalf("LoadAndBuildGraph failed: %v", err)
+		t.Fatalf("NewGraphFromJSON failed: %v", err)
 	}
 
-	path, visited, _ := search.BFS(g, "A", "C")
+	path, visited, _ := search.BFS(g, "A")
 	if len(path) == 0 {
 		t.Fatal("Expected a non-empty path for BFS")
 	}
@@ -28,12 +28,12 @@ func TestBFS(t *testing.T) {
 
 func TestDFS(t *testing.T) {
 	jsonPath := filepath.Join("test", "fixture.json")
-	g, err := utils.LoadAndBuildGraph(jsonPath)
+	g, err := utils.NewGraphFromJSON(jsonPath)
 	if err != nil {
-		t.Fatalf("LoadAndBuildGraph failed: %v", err)
+		t.Fatalf("NewGraphFromJSON failed: %v", err)
 	}
 
-	path, visited, _ := search.DFS(g, "A", "C")
+	path, visited, _ := search.DFS(g, "A")
 	if len(path) == 0 {
 		t.Fatal("Expected a non-empty path for DFS")
 	}
@@ -47,12 +47,12 @@ func TestDFS(t *testing.T) {
 
 func TestBidirectionalSearch(t *testing.T) {
 	jsonPath := filepath.Join("test", "fixture.json")
-	g, err := utils.LoadAndBuildGraph(jsonPath)
+	g, err := utils.NewGraphFromJSON(jsonPath)
 	if err != nil {
-		t.Fatalf("LoadAndBuildGraph failed: %v", err)
+		t.Fatalf("NewGraphFromJSON failed: %v", err)
 	}
 
-	path, visited, _ := search.BidirectionalSearch(g, "A", "C")
+	path, visited, _ := search.BidirectionalSearch(g, "A")
 	if len(path) == 0 {
 		t.Fatal("Expected a non-empty path for Bidirectional Search")
 	}

@@ -5,75 +5,101 @@ import (
 	"tubes2/utils"
 )
 
-// BidirectionalSearch performs bidirectional search from start to target in the graph
-func BidirectionalSearch(g *utils.Graph, start, target string) (path []string, visited int, duration time.Duration) {
+func BidirectionalSearch(g *utils.Graph, target string) (path []string, visited int, duration time.Duration) {
 	t0 := time.Now()
 	visited = 0
 
-	forwardQueue := [][]string{{start}}
-	backwardQueue := [][]string{{target}}
+	tid := g.IDs[target]
 
-	visitedFromStart := map[string]bool{start: true}
-	visitedFromTarget := map[string]bool{target: true}
+	// gunakan ID base elements
+	baseIDs := []int{
+		g.IDs["Water"],
+		g.IDs["Fire"],
+		g.IDs["Earth"],
+		g.IDs["Air"],
+	}
 
-	parentsFromStart := map[string]string{start: ""}
-	parentsFromTarget := map[string]string{target: ""}
+	forwardQueue := [][]int{{tid}}
+	visitedFromTarget := map[int]bool{tid: true}
+	parentFromTarget := map[int]int{tid: -1}
+
+	backwardQueue := [][]int{}
+	visitedFromBase := map[int]bool{}
+	parentFromBase := map[int]int{}
+
+	for _, bid := range baseIDs {
+		backwardQueue = append(backwardQueue, []int{bid})
+		visitedFromBase[bid] = true
+		parentFromBase[bid] = -1
+	}
 
 	for len(forwardQueue) > 0 && len(backwardQueue) > 0 {
+		// Forward dari target
 		if len(forwardQueue) > 0 {
-			currentPath := forwardQueue[0]
+			path := forwardQueue[0]
 			forwardQueue = forwardQueue[1:]
-			node := currentPath[len(currentPath)-1]
+			curr := path[len(path)-1]
 			visited++
-			if visitedFromTarget[node] {
-				return reconstructPath(parentsFromStart, parentsFromTarget, node), visited, time.Since(t0)
+
+			if visitedFromBase[curr] {
+				return reconstructIntPath(parentFromTarget, parentFromBase, curr, g), visited, time.Since(t0)
 			}
-			for _, neighbor := range g.Adj[node] {
-				if !visitedFromStart[neighbor] {
-					visitedFromStart[neighbor] = true
-					newPath := append([]string{}, currentPath...)
-					newPath = append(newPath, neighbor)
-					parentsFromStart[neighbor] = node
-					forwardQueue = append(forwardQueue, newPath)
+
+			for i := 0; i+1 < len(g.AdjInt[curr]); i += 2 {
+				a := g.AdjInt[curr][i]
+				b := g.AdjInt[curr][i+1]
+
+				for _, nbr := range []int{a, b} {
+					if !visitedFromTarget[nbr] {
+						visitedFromTarget[nbr] = true
+						parentFromTarget[nbr] = curr
+						newPath := append([]int{}, path...)     // duplikat path
+						newPath = append(newPath, nbr)         // tambahkan neighbor
+						forwardQueue = append(forwardQueue, newPath)
+					}
 				}
 			}
 		}
+
+		// Backward dari base
 		if len(backwardQueue) > 0 {
-			currentPath := backwardQueue[0]
+			path := backwardQueue[0]
 			backwardQueue = backwardQueue[1:]
-			node := currentPath[len(currentPath)-1]
+			curr := path[len(path)-1]
 			visited++
 
-			// If the node is already visited by the forward search, path is found
-			if visitedFromStart[node] {
-				return reconstructPath(parentsFromStart, parentsFromTarget, node), visited, time.Since(t0)
+			if visitedFromTarget[curr] {
+				return reconstructIntPath(parentFromTarget, parentFromBase, curr, g), visited, time.Since(t0)
 			}
-			for _, neighbor := range g.Adj[node] {
-				if !visitedFromTarget[neighbor] {
-					visitedFromTarget[neighbor] = true
-					newPath := append([]string{}, currentPath...)
-					newPath = append(newPath, neighbor)
-					parentsFromTarget[neighbor] = node
+
+			for _, nbr := range g.AdjInt[curr] {
+				if !visitedFromBase[nbr] {
+					visitedFromBase[nbr] = true
+					parentFromBase[nbr] = curr
+					newPath := append([]int{}, path...)     // duplikat path
+					newPath = append(newPath, nbr)         // tambahkan neighbor
 					backwardQueue = append(backwardQueue, newPath)
 				}
 			}
 		}
 	}
 
-	duration = time.Since(t0)
-	return nil, visited, duration
+	return nil, visited, time.Since(t0)
 }
 
-func reconstructPath(parentsFromStart, parentsFromTarget map[string]string, meetingPoint string) []string {
-	pathFromStart := []string{}
-	for node := meetingPoint; node != ""; node = parentsFromStart[node] {
-		pathFromStart = append([]string{node}, pathFromStart...)
+func reconstructIntPath(parentFromTarget, parentFromBase map[int]int, meet int, g *utils.Graph) []string {
+	path1 := []int{}
+	for v := meet; v != -1; v = parentFromTarget[v] {
+		path1 = append([]int{v}, path1...)
 	}
-	pathFromTarget := []string{}
-	for node := meetingPoint; node != ""; node = parentsFromTarget[node] {
-		pathFromTarget = append(pathFromTarget, node)
+	path2 := []int{}
+	for v := parentFromBase[meet]; v != -1; v = parentFromBase[v] {
+		path2 = append(path2, v)
 	}
-	pathFromTarget = pathFromTarget[1:]
-	// Combine the two paths to form the final path
-	return append(pathFromStart, pathFromTarget...)
+	full := append(path1, path2...)
+	names := make([]string, len(full))
+	for i, id := range full {
+		names[i] = g.Names[id]
+	}
+	return names
 }

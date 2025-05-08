@@ -1,80 +1,88 @@
 package router
 
 import (
-	"net/http"
-	"strconv"
-	"time"
-	"tubes2/scraper" 
-	"tubes2/search"
-	"tubes2/utils"
-	"github.com/gin-gonic/gin"
+    "net/http"
+    "strconv"
+    "time"
+
+    "tubes2/scraper"
+    "tubes2/search"
+    "tubes2/utils"
+
+    "github.com/gin-gonic/gin"
 )
 
-// Fungsi untuk mengatur routing
-func SetupRouter(g *utils.Graph) *gin.Engine {
-	r := gin.Default()
+func SetupRouter(g *utils.Graph, recipes map[string][][2]string) *gin.Engine {
+    r := gin.Default()
 
-	// Routing untuk endpoint scraping
-	r.GET("/scraper", scraper.ScrapeElements) // Memanggil fungsi ScrapeElements dari scraper
+    // Endpoint untuk scraping
+    r.GET("/scraper", scraper.ScrapeElements)
 
-	// Endpoint list elemen
-	r.GET("/elements", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"elements": g.Nodes()})
-	})
-	
-	// Endpoint search
-	r.GET("/search", func(c *gin.Context) {
-		start := c.DefaultQuery("start","Water")
-		target := c.Query("target")
-		algo   := c.DefaultQuery("algo", "bfs") // bfs atau dfs
-		mode := c.DefaultQuery("mode", "multiple")
-		maxStr := c.DefaultQuery("max", "3")
+    // Endpoint untuk daftar semua elemen
+    r.GET("/elements", func(c *gin.Context) {
+        c.JSON(http.StatusOK, gin.H{"elements": g.Nodes()})
+    })
 
-		if target == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "`target` is required"})
-			return
-		}
+    // Endpoint pencarian
+    r.GET("/search", func(c *gin.Context) {
+        target := c.Query("target")
+        algo   := c.DefaultQuery("algo", "bfs")
+        mode   := c.DefaultQuery("mode", "single")
+        maxStr := c.DefaultQuery("max", "3")
 
-		if _, ok := g.IDs[start]; !ok {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "`start` element not found"})
-			return
-		}
+        if target == "" {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "`target` is required"})
+            return
+        }
+        if _, ok := g.IDs[target]; !ok {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "`target` element not found"})
+            return
+        }
 
-		if _, ok := g.Adj[target]; !ok {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "`target` element not found"})
-			return
-		}
+        if mode == "multiple" {
+            max, err := strconv.Atoi(maxStr)
+            if err != nil || max <= 0 {
+                c.JSON(http.StatusBadRequest, gin.H{"error": "`max` must be a positive integer"})
+                return
+            }
+            paths := search.FindMultiplePaths(g, target, algo, max)
+            c.JSON(http.StatusOK, gin.H{
+                "paths": paths,
+                "count": len(paths),
+            })
+            return
+        }
 
-		if mode == "multiple"{
-			max, err := strconv.Atoi(maxStr)
-			if err != nil || max <= 0 {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "`max` must be a positive integer"})
-				return
-			}
-			paths := search.FindMultiplePathsInt(g, start, target, algo, max)
-			c.JSON(http.StatusOK, gin.H{
-				"paths":	paths,
-				"count":	len(paths),
-			})	
-			return
-		}
+        // mode == "single"
+        var (
+            path    []string
+            visited int
+            dur     time.Duration
+        )
+        switch algo {
+        case "dfs":
+            path, visited, dur = search.DFS(g, target)
+        default:
+            path, visited, dur = search.BFS(g, target)
+        }
 
-		var (
-		  path    []string
-		  visited int
-		  dur     time.Duration
-		)
-		if algo == "dfs" {
-		  path, visited, dur = search.DFSInt(g, start, target)
-		} else {
-		  path, visited, dur = search.BFSInt(g, start, target)
-		}
-	
-		c.JSON(http.StatusOK, gin.H{
-		  "path":    path,
-		  "visited": visited,
-		  "time_ms": dur.Milliseconds(),
-		})
-	  })
-	return r
+        c.JSON(http.StatusOK, gin.H{
+            "path":    path,
+            "visited": visited,
+            "time_ms": dur.Milliseconds(),
+        })
+    })
+
+    // Endpoint visualisasi pohon resep
+    r.GET("/tree", func(c *gin.Context) {
+        target := c.Query("target")
+        if target == "" {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "`target` is required"})
+            return
+        }
+        tree := search.BuildRecipeTree(target, recipes)
+        c.JSON(http.StatusOK, tree)
+    })
+
+    return r
 }

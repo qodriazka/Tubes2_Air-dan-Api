@@ -1,42 +1,13 @@
 package search
 
 import (
-	"time"
-	"tubes2/utils"
+    "time"
+    "tubes2/utils"
 )
 
-func DFS(graph *utils.Graph, start, target string) (path []string, visited int, duration time.Duration) {
-	t0 := time.Now()
-	visited = 0
-	seen := map[string]bool{}
-	var dfs func(node string, currentPath []string) ([]string, bool)
-
-	dfs = func(node string, currentPath []string) ([]string, bool) {
-		visited++
-		if node == target {
-			return currentPath, true
-		}
-		seen[node] = true
-		for _, neighbor := range graph.Adj[node] {
-			if !seen[neighbor] {
-				newPath := append([]string{}, currentPath...)
-				newPath = append(newPath, neighbor)
-				if result, found := dfs(neighbor, newPath); found {
-					return result, true
-				}
-			}
-		}
-		return nil, false
-	}
-
-	path, _ = dfs(start, []string{start})
-	duration = time.Since(t0)
-	return path, visited, duration
-}
-
-func DFSInt(g *utils.Graph, startName, targetName string) ([]string, int, time.Duration) {
-    startID := g.IDs[startName]
-    targetID := g.IDs[targetName]
+// DFS mundur: rekursif trace sampai base element
+func DFS(g *utils.Graph, target string) ([]string, int, time.Duration) {
+    tid := g.IDs[target]
 
     t0 := time.Now()
     n := len(g.AdjInt)
@@ -46,22 +17,17 @@ func DFSInt(g *utils.Graph, startName, targetName string) ([]string, int, time.D
         parent[i] = -1
     }
 
-    steps := 0
-    var foundPath []int
+    var steps int
+    var foundID int = -1
+
     var dfs func(u int) bool
     dfs = func(u int) bool {
         steps++
         visited[u] = true
-        if u == targetID {
-            // reconstruct
-            var pathIDs []int
-            for v := u; v != -1; v = parent[v] {
-                pathIDs = append(pathIDs, v)
-            }
-            for i, j := 0, len(pathIDs)-1; i < j; i, j = i+1, j-1 {
-                pathIDs[i], pathIDs[j] = pathIDs[j], pathIDs[i]
-            }
-            foundPath = pathIDs
+        name := g.Names[u]
+        // leaf?
+        if _, has := g.Recipes[name]; !has {
+            foundID = u
             return true
         }
         for _, v := range g.AdjInt[u] {
@@ -75,10 +41,21 @@ func DFSInt(g *utils.Graph, startName, targetName string) ([]string, int, time.D
         return false
     }
 
-    dfs(startID)
-    // convert to names
-    path := make([]string, len(foundPath))
-    for i, id := range foundPath {
+    dfs(tid)
+
+    if foundID < 0 {
+        return nil, steps, time.Since(t0)
+    }
+    // reconstruct and reverse
+    pathIDs := []int{}
+    for v := foundID; v != -1; v = parent[v] {
+        pathIDs = append(pathIDs, v)
+    }
+    for i, j := 0, len(pathIDs)-1; i<j; i, j = i+1, j-1 {
+        pathIDs[i], pathIDs[j] = pathIDs[j], pathIDs[i]
+    }
+    path := make([]string, len(pathIDs))
+    for i, id := range pathIDs {
         path[i] = g.Names[id]
     }
     return path, steps, time.Since(t0)

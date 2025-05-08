@@ -1,47 +1,14 @@
-// search/bfs.go
 package search
 
 import (
-	"time"
-	"tubes2/utils"
+    "time"
+    "tubes2/utils"
 )
 
-// BFS performs breadth-first search from start to target in the graph
-func BFS(graph *utils.Graph, start, target string) (path []string, visited int, duration time.Duration) {
-	t0 := time.Now()
-	visited = 0
-	queue := [][]string{{start}}
-	seen := map[string]bool{start: true}
-
-	for len(queue) > 0 {
-		currentPath := queue[0]
-		queue = queue[1:]
-		node := currentPath[len(currentPath)-1]
-		visited++
-
-		if node == target {
-			duration = time.Since(t0)
-			return currentPath, visited, duration
-		}
-
-		for _, neighbor := range graph.Adj[node] {
-			if !seen[neighbor] {
-				seen[neighbor] = true
-				newPath := append([]string{}, currentPath...)
-				newPath = append(newPath, neighbor)
-				queue = append(queue, newPath)
-			}
-		}
-	}
-
-	duration = time.Since(t0)
-	return nil, visited, duration
-}
-
-func BFSInt(g *utils.Graph, startName, targetName string) ([]string, int, time.Duration) {
-    // konversi nama ke ID
-    startID := g.IDs[startName]
-    targetID := g.IDs[targetName]
+// BFS mundur: mulai dari target, temukan semua bahan hingga base
+// Ini mengembalikan satu jalur (chain) dari target ke elemen dasar pertama
+func BFS(g *utils.Graph, target string) ([]string, int, time.Duration) {
+    tid := g.IDs[target]
 
     t0 := time.Now()
     n := len(g.AdjInt)
@@ -51,26 +18,27 @@ func BFSInt(g *utils.Graph, startName, targetName string) ([]string, int, time.D
         parent[i] = -1
     }
 
-    queue := []int{startID}
-    visited[startID] = true
-    steps := 0
+    queue := []int{tid}
+    visited[tid] = true
+    var steps int
 
     for len(queue) > 0 {
         u := queue[0]
         queue = queue[1:]
         steps++
 
-        if u == targetID {
-            // reconstruct path of IDs
+        // jika u adalah base element (tidak punya resep lagi)
+        if _, has := g.Recipes[g.Names[u]]; !has {
+            // reconstruct chain: dari base ke target, lalu reverse
             pathIDs := []int{}
             for v := u; v != -1; v = parent[v] {
                 pathIDs = append(pathIDs, v)
             }
-            // reverse
-            for i, j := 0, len(pathIDs)-1; i < j; i, j = i+1, j-1 {
+            // reverse to target→base
+            for i, j := 0, len(pathIDs)-1; i<j; i, j = i+1, j-1 {
                 pathIDs[i], pathIDs[j] = pathIDs[j], pathIDs[i]
             }
-            // convert to names
+            // map to names
             path := make([]string, len(pathIDs))
             for i, id := range pathIDs {
                 path[i] = g.Names[id]
@@ -78,6 +46,7 @@ func BFSInt(g *utils.Graph, startName, targetName string) ([]string, int, time.D
             return path, steps, time.Since(t0)
         }
 
+        // expand ke bahan
         for _, v := range g.AdjInt[u] {
             if !visited[v] {
                 visited[v] = true
