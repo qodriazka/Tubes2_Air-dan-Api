@@ -1,88 +1,105 @@
 package router
 
 import (
-    "net/http"
-    "strconv"
-    "time"
+//	"encoding/json"
+	"net/http"
+	"time"
+	"tubes2/search"
+	"tubes2/utils"
 
-    "tubes2/scraper"
-    "tubes2/search"
-    "tubes2/utils"
-
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(g *utils.Graph, recipes map[string][][2]string) *gin.Engine {
-    r := gin.Default()
+// RequestBody adalah format JSON yang dikirim dari frontend
+type RequestBody struct {
+    Target      string `json:"target"`
+    Algorithm   string `json:"algorithm"`   // "bfs", "dfs", "bidirectional"
+    Mode        string `json:"mode"`        // "single", "multiple"
+    MaxRecipes  int    `json:"max_recipes"` // untuk multiple
+}
 
-    // Endpoint untuk scraping
-    r.GET("/scraper", scraper.ScrapeElements)
+// ResponseBody hasil akhir yang dikembalikan ke frontend
+type ResponseBody struct {
+    Recipes   []search.TreeNode   `json:"recipes"`
+    Steps     []int               `json:"steps"`
+    Durations []string            `json:"durations"`
+}
 
-    // Endpoint untuk daftar semua elemen
-    r.GET("/elements", func(c *gin.Context) {
-        c.JSON(http.StatusOK, gin.H{"elements": g.Nodes()})
-    })
+func SetupRouter(g *utils.Graph) *gin.Engine {
+    router := gin.Default()
 
-    // Endpoint pencarian
-    r.GET("/search", func(c *gin.Context) {
-        target := c.Query("target")
-        algo   := c.DefaultQuery("algo", "bfs")
-        mode   := c.DefaultQuery("mode", "single")
-        maxStr := c.DefaultQuery("max", "3")
-
-        if target == "" {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "`target` is required"})
+    router.POST("/search", func(c *gin.Context) {
+        var req RequestBody
+        if err := c.ShouldBindJSON(&req); err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
             return
         }
-        if _, ok := g.IDs[target]; !ok {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "`target` element not found"})
+
+        if req.Target == "" {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Target is required"})
             return
         }
 
-        if mode == "multiple" {
-            max, err := strconv.Atoi(maxStr)
-            if err != nil || max <= 0 {
-                c.JSON(http.StatusBadRequest, gin.H{"error": "`max` must be a positive integer"})
+        var recipes []search.TreeNode
+        var stepsList []int
+        var durations []string
+
+        if req.Mode == "single" {
+            var recipe search.TreeNode
+            var steps int
+            var dur time.Duration
+
+            switch req.Algorithm {
+            case "bfs":
+                recipe, steps, dur = search.BFS(g, req.Target)
+            case "dfs":
+                recipe, steps, dur = search.DFS(g, req.Target)
+            case "bidirectional":
+                recipe, steps, dur = search.BidirectionalSearch(g, req.Target)
+            default:
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown algorithm"})
                 return
             }
-            paths := search.FindMultiplePaths(g, target, algo, max)
-            c.JSON(http.StatusOK, gin.H{
-                "paths": paths,
-                "count": len(paths),
-            })
+
+            recipes = []search.TreeNode{recipe}
+            stepsList = []int{steps}
+            durations = []string{dur.String()}
+
+        } else if req.Mode == "multiple" {
+            if req.MaxRecipes <= 0 {
+                c.JSON(http.StatusBadRequest, gin.H{"error": "max_recipes must be positive"})
+                return
+            }
+
+            var results []search.MultiResult
+            switch req.Algorithm {
+            case "bfs":
+                results = search.BFSAll(g, req.Target, req.MaxRecipes)
+            case "dfs":
+                results = search.DFSAll(g, req.Target, req.MaxRecipes)
+            case "bidirectional":
+                results = search.BidirectionalAll(g, req.Target, req.MaxRecipes)
+            default:
+                c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown algorithm"})
+                return
+            }
+
+            for _, r := range results {
+                recipes = append(recipes, r.Recipe)
+                stepsList = append(stepsList, r.Steps)
+                durations = append(durations, r.Duration.String())
+            }
+        } else {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown mode"})
             return
         }
 
-        // mode == "single"
-        var (
-            path    []string
-            visited int
-            dur     time.Duration
-        )
-        switch algo {
-        case "dfs":
-            path, visited, dur = search.DFS(g, target)
-        default:
-            path, visited, dur = search.BFS(g, target)
-        }
-
-        c.JSON(http.StatusOK, gin.H{
-            "path":    path,
-            "visited": visited,
-            "time_ms": dur.Milliseconds(),
+        c.JSON(http.StatusOK, ResponseBody{
+            Recipes:   recipes,
+            Steps:     stepsList,
+            Durations: durations,
         })
     })
 
-    // Endpoint visualisasi pohon resep
-    r.GET("/tree", func(c *gin.Context) {
-        target := c.Query("target")
-        if target == "" {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "`target` is required"})
-            return
-        }
-        tree := search.BuildRecipeTree(target, recipes)
-        c.JSON(http.StatusOK, tree)
-    })
-
-    return r
+    return router
 }

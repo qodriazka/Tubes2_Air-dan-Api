@@ -10,21 +10,44 @@ type Combine struct {
     Right *Node `json:"right"`
 }
 
-func BuildRecipeTree(target string, recipes map[string][][2]string) *Node {
-    memo := make(map[string]*Node)
-    return buildNode(target, recipes, memo)
+var primitives = map[string]bool{
+    "Water": true,
+    "Earth": true,
+    "Fire":  true,
+    "Air":   true,
 }
 
-func buildNode(name string, recipes map[string][][2]string, memo map[string]*Node) *Node {
-    if n, ok := memo[name]; ok {
-        return n
+// TreeNode adalah format yang akan dikirim ke frontend
+type TreeNode struct {
+    Name     string     `json:"name"`
+    Combines []TreeNode `json:"combines,omitempty"`
+}
+
+func BuildRecipeTree(target string, recipes map[string][][2]string) *Node {
+    visited := make(map[string]bool)
+    root, _ := buildNode(target, recipes, visited)
+    return root
+}
+
+func buildNode(name string, recipes map[string][][2]string, visited map[string]bool) (*Node, bool) {
+    if primitives[name] {
+        return &Node{Name: name}, true
     }
+    if visited[name] {
+        return nil, false
+    }
+    visited[name] = true
+    defer func() { visited[name] = false }()
     node := &Node{Name: name}
-    memo[name] = node
     for _, pair := range recipes[name] {
-        left := buildNode(pair[0], recipes, memo)
-        right := buildNode(pair[1], recipes, memo)
-        node.Combines = append(node.Combines, Combine{Left: left, Right: right})
+        left, okL := buildNode(pair[0], recipes, visited)
+        right, okR := buildNode(pair[1], recipes, visited)
+        if okL && okR {
+            node.Combines = append(node.Combines, Combine{Left: left, Right: right})
+        }
     }
-    return node
+    if len(node.Combines) == 0 {
+        return nil, false
+    }
+    return node, true
 }

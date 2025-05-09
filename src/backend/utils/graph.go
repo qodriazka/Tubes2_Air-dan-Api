@@ -15,6 +15,7 @@ type Graph struct {
     Names []string
 
     AdjInt [][]int
+    RevInt [][]int
 }
 
 // NewGraphFromJSON membaca scraped_recipes.json dan membangun Graph
@@ -55,6 +56,7 @@ func NewGraphFromJSON(jsonPath string) (*Graph, error) {
     // bangun reverse adjacency int: dari node (res) ke bahan a,b
     n := len(g.Names)
     g.AdjInt = make([][]int, n)
+    g.RevInt = make([][]int, n)
     for res, pairs := range raw {
         rid := g.IDs[res]
         for _, p := range pairs {
@@ -62,6 +64,8 @@ func NewGraphFromJSON(jsonPath string) (*Graph, error) {
             bid := g.IDs[p[1]]
             // res → a, res → b
             g.AdjInt[rid] = append(g.AdjInt[rid], aid, bid)
+            g.RevInt[aid] = append(g.RevInt[aid], rid)
+            g.RevInt[bid] = append(g.RevInt[bid], rid)
         }
     }
 
