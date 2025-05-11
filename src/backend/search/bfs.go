@@ -1,66 +1,71 @@
 package search
 
 import (
+    "container/list"
+    "fmt"
     "time"
     "tubes2/utils"
 )
 
-// BFS melakukan traversal level-order dan stop di node lengkap pertama
-func BFS(g *utils.Graph, target string) (TreeNode, int, time.Duration) {
-    tid := g.IDs[target]
-    n   := len(g.AdjInt)
+// SearchBFS performs a pure breadth-first search on the element graph
+// until it finds one complete recipe tree (all leaves are base elements).
+// Returns a single SearchResult with stats (nodes visited and duration).
+func SearchBFS(g *utils.Graph, target string) ([]SearchResult, error) {
+    start := time.Now()
 
-    // visited flags per run
-    visited := make([]bool, n)
-    // standard FIFO queue of IDs
-    queue := []int{tid}
-    visited[tid] = true
-
+    // predecessor map: for each non-base element, record the recipe that builds it
+    pre := make(map[string][2]string)
+    visited := make(map[string]bool)
     steps := 0
-    t0 := time.Now()
 
-    for len(queue) > 0 {
-        u := queue[0]
-        queue = queue[1:]
+    // BFS queue over element names
+    type state struct{ elem string }
+    q := list.New()
+    q.PushBack(state{target})
+    visited[target] = true
+
+    // BFS loop
+    for q.Len() > 0 {
+        curr := q.Remove(q.Front()).(state).elem
         steps++
 
-        children := g.AdjInt[u]
-        // stop condition: exactly 2 children, both primitives
-        if len(children) == 2 {
-            leftName  := g.Names[children[0]]
-            rightName := g.Names[children[1]]
-            if primitives[leftName] && primitives[rightName] {
-                // reconstruct nested subtree and return
-                result := buildTreeNode(u, g)
-                return result, steps, time.Since(t0)
-            }
+        // Skip expansion if base element
+        if g.Tier(curr) == 0 {
+            continue
         }
 
-        // enqueue all unvisited neighbours
-        for _, v := range children {
-            if !visited[v] {
-                visited[v] = true
-                queue        = append(queue, v)
+        // Try recipes with tier enforcement, fallback if none
+        combos := g.RecipesFor(curr, true)
+        if len(combos) == 0 {
+            combos = g.RecipesFor(curr, false)
+        }
+        if len(combos) == 0 {
+            continue
+        }
+
+        // Record first recipe for curr
+        pair := combos[0]
+        pre[curr] = [2]string{pair[0], pair[1]}
+
+        // Enqueue ingredients
+        for _, ing := range pair {
+            if !visited[ing] {
+                visited[ing] = true
+                q.PushBack(state{ing})
             }
         }
     }
 
-    // jika tidak ditemukan sama sekali, return empty TreeNode
-    return TreeNode{}, steps, time.Since(t0)
-}
+    // Reconstruct tree from pre map
+    tree := BuildTreeFromPre(g, target, pre)
 
-// buildTreeNode membangun subtree dari ID ke primitives, nested
-func buildTreeNode(id int, g *utils.Graph) TreeNode {
-    name := g.Names[id]
-    if primitives[name] {
-        return TreeNode{Name: name}
-    }
-    children := g.AdjInt[id]
-    // asumsikan children length 2 untuk non-primitive dalam konteks ini
-    leftNode  := buildTreeNode(children[0], g)
-    rightNode := buildTreeNode(children[1], g)
-    return TreeNode{
-        Name:     name,
-        Combines: []TreeNode{leftNode, rightNode},
-    }
+    // Format duration to milliseconds
+    dur := time.Since(start)
+    duration := fmt.Sprintf("%.3fms", float64(dur.Nanoseconds())/1e6)
+
+    return []SearchResult{{
+        Recipe:       tree,
+        NodesVisited: steps,
+        Duration:     duration,
+    }}, nil
 }

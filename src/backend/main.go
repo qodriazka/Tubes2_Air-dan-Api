@@ -1,26 +1,29 @@
 package main
 
 import (
-    "fmt"
     "log"
     "tubes2/router"
     "tubes2/utils"
+    "tubes2/scraper"
 )
 
 func main() {
-    // Load graph dari JSON
-    graph, err := utils.NewGraphFromJSON("scraped_recipes.json")
-    if err != nil {
-        log.Fatalf("Failed to load graph: %v", err)
+    // Scrape data terbaru ke scraped_recipes.json
+    if err := scraper.ScrapeToFile("scraped_recipes.json"); err != nil {
+        log.Fatalf("Scraping failed: %v", err)
     }
 
-    // Setup dan jalankan router
+    // Load graph dari file scraped_recipes.json
+    graph, err := utils.NewGraph("scraped_recipes.json")
+    if err != nil {
+        log.Fatalf("Error loading graph: %v", err)
+    }
+
+    // Siapkan router dengan dependency graph
     r := router.SetupRouter(graph)
 
-    // Jalankan di port 8080 (atau sesuaikan)
-    port := ":8080"
-    fmt.Printf("Server running on http://localhost%s\n", port)
-    if err := r.Run(port); err != nil {
-        log.Fatalf("Failed to run server: %v", err)
+    // Jalankan HTTP server di port 8080
+    if err := r.Run(":8080"); err != nil {
+        log.Fatalf("Server error: %v", err)
     }
 }

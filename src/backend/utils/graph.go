@@ -6,73 +6,84 @@ import (
     "os"
 )
 
-type Graph struct {
-    // recipes raw: map[target]→[][2]string
-    Recipes map[string][][2]string
-
-    // mapping name→ID, ID→name
-    IDs   map[string]int
-    Names []string
-
-    AdjInt [][]int
-    RevInt [][]int
+// Recipe merepresentasikan satu cara membuat target dari 2 bahan
+type Recipe struct {
+    Ingredients []string
 }
 
-// NewGraphFromJSON membaca scraped_recipes.json dan membangun Graph
-func NewGraphFromJSON(jsonPath string) (*Graph, error) {
-    data, err := os.ReadFile(jsonPath)
+// Element hanya menyimpan tier (kita tidak pakai Recipes di sini lagi)
+type Element struct {
+    Tier int
+}
+
+// Graph memetakan name → Element (untuk tier) dan
+// name → daftar Recipe (untuk struktur graf)
+type Graph struct {
+    Elements map[string]*Element     // untuk cek Tier()
+    Recipes  map[string][][]string   // raw recipe list
+}
+
+// NewGraph membaca JSON dan mengisi kedua map di atas
+func NewGraph(path string) (*Graph, error) {
+    raw, err := os.ReadFile(path)
     if err != nil {
-        return nil, fmt.Errorf("failed to read JSON: %w", err)
-    }
-    var raw map[string][][2]string
-    if err := json.Unmarshal(data, &raw); err != nil {
-        return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
+        return nil, fmt.Errorf("failed reading file: %w", err)
     }
 
-    // inisialisasi graph
+    // Struktur per‐elemen di JSON
+    var data map[string]struct {
+        Tier    int        `json:"tier"`
+        Recipes [][]string `json:"recipes"`
+    }
+    if err := json.Unmarshal(raw, &data); err != nil {
+        return nil, fmt.Errorf("failed parsing JSON: %w", err)
+    }
+
     g := &Graph{
-        Recipes: raw,
-        IDs:     make(map[string]int),
-        Names:   []string{},
+        Elements: make(map[string]*Element),
+        Recipes:  make(map[string][][]string),
     }
 
-    // assign IDs ke semua elemen (target + bahan)
-    for res, pairs := range raw {
-        if _, ok := g.IDs[res]; !ok {
-            g.IDs[res] = len(g.Names)
-            g.Names = append(g.Names, res)
-        }
-        for _, p := range pairs {
-            a, b := p[0], p[1]
-            for _, el := range []string{a, b} {
-                if _, ok := g.IDs[el]; !ok {
-                    g.IDs[el] = len(g.Names)
-                    g.Names = append(g.Names, el)
-                }
-            }
-        }
-    }
-
-    // bangun reverse adjacency int: dari node (res) ke bahan a,b
-    n := len(g.Names)
-    g.AdjInt = make([][]int, n)
-    g.RevInt = make([][]int, n)
-    for res, pairs := range raw {
-        rid := g.IDs[res]
-        for _, p := range pairs {
-            aid := g.IDs[p[0]]
-            bid := g.IDs[p[1]]
-            // res → a, res → b
-            g.AdjInt[rid] = append(g.AdjInt[rid], aid, bid)
-            g.RevInt[aid] = append(g.RevInt[aid], rid)
-            g.RevInt[bid] = append(g.RevInt[bid], rid)
-        }
+    // Isi kedua map
+    for name, info := range data {
+        g.Elements[name] = &Element{Tier: info.Tier}
+        g.Recipes[name] = info.Recipes
     }
 
     return g, nil
 }
 
-// Nodes mengembalikan daftar semua elemen
-func (g *Graph) Nodes() []string {
-    return append([]string{}, g.Names...)
+// Tier mengembalikan tier elemen, atau -1 kalau tidak ada
+func (g *Graph) Tier(name string) int {
+    if e, ok := g.Elements[name]; ok {
+        return e.Tier
+    }
+    return -1
+}
+
+// RecipesFor mengembalikan daftar resep raw
+// jika enforceTier==true maka filter tier(ing)<tier(target)
+func (g *Graph) RecipesFor(target string, enforceTier bool) [][]string {
+    raw, ok := g.Recipes[target]
+    if !ok {
+        return nil
+    }
+    if !enforceTier {
+        return raw
+    }
+    var out [][]string
+    t0 := g.Tier(target)
+    for _, combo := range raw {
+        valid := true
+        for _, ing := range combo {
+            if g.Tier(ing) >= t0 {
+                valid = false
+                break
+            }
+        }
+        if valid {
+            out = append(out, combo)
+        }
+    }
+    return out
 }

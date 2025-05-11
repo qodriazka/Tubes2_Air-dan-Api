@@ -1,9 +1,8 @@
 package router
 
 import (
-//	"encoding/json"
 	"net/http"
-	"time"
+	//"strconv"
 	"tubes2/search"
 	"tubes2/utils"
 
@@ -12,94 +11,75 @@ import (
 
 // RequestBody adalah format JSON yang dikirim dari frontend
 type RequestBody struct {
-    Target      string `json:"target"`
-    Algorithm   string `json:"algorithm"`   // "bfs", "dfs", "bidirectional"
-    Mode        string `json:"mode"`        // "single", "multiple"
-    MaxRecipes  int    `json:"max_recipes"` // untuk multiple
+	Target     string `json:"target"`
+	Algorithm  string `json:"algorithm"`   // "bfs", "dfs"
+	Mode       string `json:"mode"`        // "single", "multiple"
+	MaxRecipes int    `json:"max_recipes"` // untuk multiple
 }
 
 // ResponseBody hasil akhir yang dikembalikan ke frontend
-type ResponseBody struct {
-    Recipes   []search.TreeNode   `json:"recipes"`
-    Steps     []int               `json:"steps"`
-    Durations []string            `json:"durations"`
-}
+// Disusun sebagai array SearchResult JSON langsung
 
+// SetupRouter membuat router HTTP dengan satu endpoint /search
 func SetupRouter(g *utils.Graph) *gin.Engine {
-    router := gin.Default()
+	r := gin.Default()
 
-    router.POST("/search", func(c *gin.Context) {
-        var req RequestBody
-        if err := c.ShouldBindJSON(&req); err != nil {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-            return
-        }
+	r.POST("/search", func(c *gin.Context) {
+		var req RequestBody
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+			return
+		}
 
-        if req.Target == "" {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "Target is required"})
-            return
-        }
+		// validasi target ada di graph
+		if req.Target == "" || g.Tier(req.Target) < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown or missing target element"})
+			return
+		}
 
-        var recipes []search.TreeNode
-        var stepsList []int
-        var durations []string
+		// validasi mode & algorithm
+		if req.Mode != "single" && req.Mode != "multiple" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid mode"})
+			return
+		}
+		if req.Algorithm != "bfs" && req.Algorithm != "dfs" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid algorithm"})
+			return
+		}
 
-        if req.Mode == "single" {
-            var recipe search.TreeNode
-            var steps int
-            var dur time.Duration
+		// dispatch
+		var (
+			results []search.SearchResult
+			err     error
+		)
 
-            switch req.Algorithm {
-            case "bfs":
-                recipe, steps, dur = search.BFS(g, req.Target)
-            case "dfs":
-                recipe, steps, dur = search.DFS(g, req.Target)
-            case "bidirectional":
-                recipe, steps, dur = search.BidirectionalSearch(g, req.Target)
-            default:
-                c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown algorithm"})
-                return
-            }
+		if req.Mode == "single" {
+			switch req.Algorithm {
+			case "bfs":
+				results, err = search.SearchBFS(g, req.Target)
+			case "dfs":
+				results, err = search.SearchDFS(g, req.Target)
+			}
+		} else {
+			if req.MaxRecipes <= 0 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "max_recipes must be positive"})
+				return
+			}
+			if req.Algorithm == "bfs" {
+				results, err = search.SearchBFSMultiple(g, req.Target, req.MaxRecipes)
+			} else {
+				results, err = search.SearchDFSMultiple(g, req.Target, req.MaxRecipes)
+			}
+		}
 
-            recipes = []search.TreeNode{recipe}
-            stepsList = []int{steps}
-            durations = []string{dur.String()}
+		if err != nil {
+			// jika error pencarian
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 
-        } else if req.Mode == "multiple" {
-            if req.MaxRecipes <= 0 {
-                c.JSON(http.StatusBadRequest, gin.H{"error": "max_recipes must be positive"})
-                return
-            }
+		c.JSON(http.StatusOK, results)
+	})
 
-            var results []search.MultiResult
-            switch req.Algorithm {
-            case "bfs":
-                results = search.BFSAll(g, req.Target, req.MaxRecipes)
-            case "dfs":
-                results = search.DFSAll(g, req.Target, req.MaxRecipes)
-            case "bidirectional":
-                results = search.BidirectionalAll(g, req.Target, req.MaxRecipes)
-            default:
-                c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown algorithm"})
-                return
-            }
-
-            for _, r := range results {
-                recipes = append(recipes, r.Recipe)
-                stepsList = append(stepsList, r.Steps)
-                durations = append(durations, r.Duration.String())
-            }
-        } else {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "Unknown mode"})
-            return
-        }
-
-        c.JSON(http.StatusOK, ResponseBody{
-            Recipes:   recipes,
-            Steps:     stepsList,
-            Durations: durations,
-        })
-    })
-
-    return router
+	return r
 }
