@@ -2,10 +2,10 @@ package router
 
 import (
 	"net/http"
-	//"strconv"
 	"tubes2/search"
 	"tubes2/utils"
 
+	"github.com/gin-contrib/cors" // Menambahkan impor untuk CORS
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,6 +23,9 @@ type RequestBody struct {
 // SetupRouter membuat router HTTP dengan satu endpoint /search
 func SetupRouter(g *utils.Graph) *gin.Engine {
 	r := gin.Default()
+
+	// Menambahkan middleware CORS
+	r.Use(cors.Default()) // Ini memungkinkan frontend di localhost:3000 untuk mengakses backend di localhost:8080
 
 	r.POST("/search", func(c *gin.Context) {
 		var req RequestBody
