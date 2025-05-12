@@ -28,7 +28,7 @@ func SearchBFSWithPre(
 
     // Local visited + steps + queue
     visited := map[string]bool{seed[0]: true, seed[1]: true}
-    steps := 0
+    
     type state struct{ elem string }
     q := list.New()
     q.PushBack(state{seed[0]})
@@ -37,7 +37,7 @@ func SearchBFSWithPre(
     // BFS tanpa sentuh g.Recipes
     for q.Len() > 0 {
         curr := q.Remove(q.Front()).(state).elem
-        steps++
+        
 
         if g.Tier(curr) == 0 {
             continue
@@ -66,9 +66,21 @@ func SearchBFSWithPre(
     tree := BuildTreeFromPre(g, target, pre)
     dur := time.Since(start)
     duration := fmt.Sprintf("%.3fms", float64(dur.Nanoseconds())/1e6)
+	var countNodes func(n *Node) int
+    countNodes = func(n *Node) int {
+        if n == nil {
+            return 0
+        }
+        cnt := 1
+        for _, c := range n.Combines {
+            cnt += countNodes(c)
+        }
+        return cnt
+    }
+    nodesVisited := countNodes(tree)
     return []SearchResult{{
         Recipe:       tree,
-        NodesVisited: steps,
+        NodesVisited: nodesVisited,
         Duration:     duration,
     }}, nil
 }

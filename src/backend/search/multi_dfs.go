@@ -1,155 +1,114 @@
 package search
 
 import (
-    "context"
     "encoding/json"
     "fmt"
-    "sync"
     "time"
     "tubes2/utils"
 )
 
-func SearchDFSWithPre(
-    g *utils.Graph,
-    target string,
-    pre map[string][2]string,
-) ([]SearchResult, error) {
-    start := time.Now()
-    // track recursion stack to avoid cycles, not a global visited
-    inPath := make(map[string]bool)
-    var steps int
-
-    // exactly the same DFS logic as SearchDFS, but seeded with pre[target]
-    var dfs func(curr string) bool
-    dfs = func(curr string) bool {
-        steps++
-        // base = tier 0
-        if g.Tier(curr) == 0 {
-            return true
-        }
-        if inPath[curr] {
-            return false
-        }
-        inPath[curr] = true
-
-        // try strict, fallback
-        combos := g.RecipesFor(curr, true)
-        if len(combos) == 0 {
-            combos = g.RecipesFor(curr, false)
-        }
-
-        for _, combo := range combos {
-            left, right := combo[0], combo[1]
-            if dfs(left) && dfs(right) {
-                // record only on successful branch
-                if _, ok := pre[curr]; !ok {
-                    pre[curr] = [2]string{left, right}
-                }
-                inPath[curr] = false
-                return true
-            }
-        }
-
-        inPath[curr] = false
-        return false
-    }
-
-    // if caller pre-seeded pre[target], we honor that first
-    if initial, ok := pre[target]; ok {
-        // force the first step
-        if !dfs(initial[0]) || !dfs(initial[1]) {
-            return nil, fmt.Errorf("seeded recipe %v for %q failed to expand", initial, target)
-        }
-    }
-
-    // now search the rest of the tree
-    if !dfs(target) {
-        return nil, fmt.Errorf("no recipe path found for %q", target)
-    }
-
-    // rebuild the tree
-    tree := BuildTreeFromPre(g, target, pre)
-
-    // format duration
-    dur := time.Since(start)
-    duration := fmt.Sprintf("%.3fms", float64(dur.Nanoseconds())/1e6)
-
-    return []SearchResult{{
-        Recipe:       tree,
-        NodesVisited: steps,
-        Duration:     duration,
-    }}, nil
-}
-
-
-// SearchDFSMultiple finds up to maxRecipes distinct recipes for target
-// by spawning DFS-per-initial-combo and collecting unique results.
+// SearchDFSMultiple finds up to maxRecipes distinct strict recipes using DFS backtracking.
 func SearchDFSMultiple(
     g *utils.Graph,
     target string,
     maxRecipes int,
 ) ([]SearchResult, error) {
-    combos := g.RecipesFor(target, false)
-    if len(combos) == 0 {
-        return nil, fmt.Errorf("no recipes to build %q", target)
+    // only strict initial combos
+    rawInit := g.RecipesFor(target, true)
+    if len(rawInit) == 0 {
+        return nil, fmt.Errorf("no strict initial combos for %q", target)
+    }
+    var initCombos [][2]string
+    for _, r := range rawInit {
+        if len(r) == 2 {
+            initCombos = append(initCombos, [2]string{r[0], r[1]})
+        }
     }
 
-    var (
-        mu       sync.Mutex
-        wg       sync.WaitGroup
-        results  []SearchResult
-        seen     = make(map[string]bool)
-        ctx, cancel = context.WithCancel(context.Background())
-    )
-    defer cancel()
-
+    results := []SearchResult{}
+    visitedTree := make(map[string]bool)
     start := time.Now()
-    dfsWithPre := func(initial [2]string) (*SearchResult, error) {
-        pre := map[string][2]string{target: initial}
-        res, err := SearchDFSWithPre(g, target, pre)
-        if err != nil || len(res) == 0 {
-            return nil, err
-        }
-        r := &res[0]
-        r.Duration = time.Since(start).String()
-        return r, nil
-    }
 
-    for _, combo := range combos {
-        combo := combo
-        if len(combo) != 2 {
-            continue
+    // recursive DFS backtracking to collect recipes
+    var dfsAll func(pre map[string][2]string, combos [][2]string)
+    dfsAll = func(pre map[string][2]string, combos [][2]string) {
+        if len(results) >= maxRecipes {
+            return
         }
-        wg.Add(1)
-        go func() {
-            defer wg.Done()
-            select {
-            case <-ctx.Done():
-                return
-            default:
-            }
-            r, err := dfsWithPre([2]string{combo[0], combo[1]})
-            if err != nil {
-                return
-            }
-            sig, _ := json.Marshal(r.Recipe)
+        // if complete, collect
+        if allLeavesAreBase(BuildTreeFromPre(g, target, pre), func(name string) bool { return g.Tier(name) == 0 }) {
+            tree := BuildTreeFromPre(g, target, pre)
+            sig, _ := json.Marshal(tree)
             key := string(sig)
-
-            mu.Lock()
-            defer mu.Unlock()
-            if len(results) < maxRecipes && !seen[key] {
-                seen[key] = true
-                results = append(results, *r)
+            if !visitedTree[key] {
+                visitedTree[key] = true
+                // count nodes
+                var countNodes func(n *Node) int
+                countNodes = func(n *Node) int {
+                    if n == nil { return 0 }
+                    cnt := 1
+                    for _, c := range n.Combines {
+                        cnt += countNodes(c)
+                    }
+                    return cnt
+                }
+                results = append(results, SearchResult{
+                    Recipe:       tree,
+                    NodesVisited: countNodes(tree),
+                    Duration:     fmt.Sprintf("%.3fms", float64(time.Since(start).Nanoseconds())/1e6),
+                })
                 if len(results) >= maxRecipes {
-                    cancel()
+                    return
                 }
             }
-        }()
+        }
+        // find first expandable leaf
+        var leafName string
+        var findLeaf func(n *Node) bool
+        findLeaf = func(n *Node) bool {
+            if len(n.Combines) == 0 && g.Tier(n.Name) > 0 {
+                leafName = n.Name
+                return true
+            }
+            for _, c := range n.Combines {
+                if findLeaf(c) {
+                    return true
+                }
+            }
+            return false
+        }
+        root := BuildTreeFromPre(g, target, pre)
+        if !findLeaf(root) {
+            return
+        }
+        // try strict recipes for this leaf
+        raw := g.RecipesFor(leafName, true)
+        for _, combo := range raw {
+            if len(combo) != 2 {
+                continue
+            }
+            // extend pre copy
+            newPre := make(map[string][2]string, len(pre))
+            for k, v := range pre { newPre[k] = v }
+            newPre[leafName] = [2]string{combo[0], combo[1]}
+            dfsAll(newPre, initCombos)
+            if len(results) >= maxRecipes {
+                return
+            }
+        }
     }
 
-    wg.Wait()
+    // seed with each initial combo
+    for _, ic := range initCombos {
+        if len(results) >= maxRecipes {
+            break
+        }
+        pre := map[string][2]string{target: ic}
+        dfsAll(pre, initCombos)
+    }
+
     if len(results) == 0 {
-        return nil, fmt.Errorf("no complete recipes found for %q", target)
+        return nil, fmt.Errorf("no strict recipes found for %q", target)
     }
     return results, nil
 }

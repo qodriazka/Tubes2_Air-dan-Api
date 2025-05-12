@@ -61,8 +61,19 @@ func SearchBidirectional(g *utils.Graph, target string) ([]SearchResult, error) 
     // Rekonstruksi pohon resep
     tree := BuildTreeFromPreSafe(g, target, jointPre)
     duration := fmt.Sprintf("%.3fms", float64(time.Since(start).Nanoseconds())/1e6)
-
-    return []SearchResult{{Recipe: tree, NodesVisited: steps, Duration: duration}}, nil
+    var countNodes func(n *Node) int
+    countNodes = func(n *Node) int {
+        if n == nil {
+            return 0
+        }
+        cnt := 1
+        for _, c := range n.Combines {
+            cnt += countNodes(c)
+        }
+        return cnt
+    }
+    nodesVisited := countNodes(tree)
+    return []SearchResult{{Recipe: tree, NodesVisited: nodesVisited, Duration: duration}}, nil
 }
 
 // expandForward satu layer BFS maju

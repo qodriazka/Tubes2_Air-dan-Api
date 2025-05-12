@@ -16,7 +16,7 @@ func SearchBFS(g *utils.Graph, target string) ([]SearchResult, error) {
     // predecessor map: for each non-base element, record the recipe that builds it
     pre := make(map[string][2]string)
     visited := make(map[string]bool)
-    steps := 0
+    
 
     // BFS queue over element names
     type state struct{ elem string }
@@ -27,7 +27,7 @@ func SearchBFS(g *utils.Graph, target string) ([]SearchResult, error) {
     // BFS loop
     for q.Len() > 0 {
         curr := q.Remove(q.Front()).(state).elem
-        steps++
+        
 
         // Skip expansion if base element
         if g.Tier(curr) == 0 {
@@ -62,10 +62,21 @@ func SearchBFS(g *utils.Graph, target string) ([]SearchResult, error) {
     // Format duration to milliseconds
     dur := time.Since(start)
     duration := fmt.Sprintf("%.3fms", float64(dur.Nanoseconds())/1e6)
-
+    var countNodes func(n *Node) int
+    countNodes = func(n *Node) int {
+        if n == nil {
+            return 0
+        }
+        cnt := 1
+        for _, c := range n.Combines {
+            cnt += countNodes(c)
+        }
+        return cnt
+    }
+    nodesVisited := countNodes(tree)
     return []SearchResult{{
         Recipe:       tree,
-        NodesVisited: steps,
+        NodesVisited: nodesVisited,
         Duration:     duration,
     }}, nil
 }
