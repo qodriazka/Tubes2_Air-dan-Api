@@ -11,16 +11,12 @@ import (
 // Returns a single SearchResult with stats and duration.
 func SearchDFS(g *utils.Graph, target string) ([]SearchResult, error) {
     start := time.Now()
-    // predecessor map: for each non-base element, which pair built it
     pre := make(map[string][2]string)
-    // inPath tracks current recursion stack to avoid cycles
     inPath := make(map[string]bool)
-    var steps int
 
     // recursive DFS, returns true if subtree from curr can be fully built
     var dfsGraph func(curr string) bool
     dfsGraph = func(curr string) bool {
-        steps++
         if g.Tier(curr) == 0 {
             return true
         }
@@ -29,41 +25,49 @@ func SearchDFS(g *utils.Graph, target string) ([]SearchResult, error) {
         }
         inPath[curr] = true
 
-        // gather recipes: strict first, then fallback
-        recipes := g.RecipesFor(curr, true)
-        if len(recipes) == 0 {
-            recipes = g.RecipesFor(curr, false)
+        // gather strict recipes since enforce tier
+        raw := g.RecipesFor(curr, true)
+        if len(raw) == 0 {
+            raw = g.RecipesFor(curr, false)
         }
-
-        for _, combo := range recipes {
+        for _, combo := range raw {
             left, right := combo[0], combo[1]
             if dfsGraph(left) && dfsGraph(right) {
-                // only record successful path
                 pre[curr] = [2]string{left, right}
                 inPath[curr] = false
                 return true
             }
         }
-
         inPath[curr] = false
         return false
     }
 
-    found := dfsGraph(target)
-    if !found {
+    if !dfsGraph(target) {
         return nil, fmt.Errorf("no recipe path found for %q", target)
     }
 
     // reconstruct tree from predecessor map
     tree := BuildTreeFromPre(g, target, pre)
 
-    // format duration to milliseconds
+    // format duration and count nodes
     dur := time.Since(start)
     duration := fmt.Sprintf("%.3fms", float64(dur.Nanoseconds())/1e6)
+    var countNodes func(n *Node) int
+    countNodes = func(n *Node) int {
+        if n == nil {
+            return 0
+        }
+        cnt := 1
+        for _, c := range n.Combines {
+            cnt += countNodes(c)
+        }
+        return cnt
+    }
+    nodesVisited := countNodes(tree)
 
     return []SearchResult{{
         Recipe:       tree,
-        NodesVisited: steps,
+        NodesVisited: nodesVisited,
         Duration:     duration,
     }}, nil
 }

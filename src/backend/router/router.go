@@ -73,6 +73,8 @@ func SetupRouter(g *utils.Graph) *gin.Engine {
 			}
 			if req.Algorithm == "bfs" {
 				results, err = search.SearchBFSMultiple(g, req.Target, req.MaxRecipes)
+			} else if req.Algorithm == "bidirectional" {
+				results, err = search.SearchBidirectionalMultiple(g, req.Target, req.MaxRecipes)
 			} else {
 				results, err = search.SearchDFSMultiple(g, req.Target, req.MaxRecipes)
 			}
