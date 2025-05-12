@@ -1,15 +1,49 @@
-// src/frontend/pages/index.jsx
-import React, { useState } from "react";
+import React, { useState } from 'react';
+import Head from 'next/head';
 import RecipeForm from "../components/RecipeForm";
 
 export default function Home() {
   const [result, setResult] = useState(null);
-
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-4">Little Alchemy 2 Recipe Finder</h1>
-      {/* Panggil RecipeForm untuk menampilkan form pencarian */}
-      <RecipeForm setResult={setResult} />
-    </div>
+    <>
+      <Head>
+        <title>Little Alchemy 2 Recipe Finder</title>
+      </Head>
+
+      <div className='container'>
+        <header>
+          <h1>Little Alchemy 2 Recipe Finder</h1>
+          <p><strong>💧 Air dan Api 🔥</strong></p>
+        </header>
+
+        <RecipeForm setResult={setResult} />
+        {result && (
+          <div className="result-section">
+            <RecipeTree data={result} />
+            <StatsPanel data={result} />
+          </div>
+        )}
+
+      </div>
+
+      <style jsx>{`
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 40px;
+          font-family: Arial, sans-serif;
+        }
+
+        header {
+          text-align: center;
+          margin-bottom: 30px;
+        }
+
+        header h1 {
+          font-size: 2.5rem;
+          color: #C326A4;
+        }
+      `}</style>
+    </>
   );
 }
