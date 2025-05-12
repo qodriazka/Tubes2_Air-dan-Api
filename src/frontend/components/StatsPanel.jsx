@@ -8,8 +8,8 @@ const StatsPanel = ({ data }) => {
     <div>
       <h2>Stats Panel</h2>
       <p>Visited Nodes: {result.nodesVisited}</p>
-      <p>Time Taken: {result.duration}</p>
-      <p>Number of Recipes: {numberOfRecipes}</p> 
+      <p>Duration: {result.duration}</p>
+      <p>Total Recipes: {numberOfRecipes}</p> 
     </div>
   );
 };
