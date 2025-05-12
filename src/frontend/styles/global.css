@@ -3,14 +3,18 @@
 /* Existing styles */
 body {
   font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
+  background-color: #f9f9f9;
   margin: 0;
   padding: 20px;
+  color: #333;
 }
 
 form input, select, button {
-  margin: 5px;
-  padding: 6px;
+  margin: 8px;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 14px;
 }
 
 /* The switch - the box around the slider */
@@ -114,4 +118,88 @@ form input, select, button {
 
 .recipe-tree-branch > .line {
   height: 20px;
+}
+
+button {
+  background-color: #C326A4;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #be209f58;
+}
+
+/* Algorithm buttons */
+.algo-btn {
+  background-color: transparent;
+  border: 2px solid #C326A4;
+  color: #C326A4;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-right: 10px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.algo-btn.active {
+  background-color: #C326A4;
+  color: white;
+}
+
+.algo-btn:not(.active):hover {
+  background-color: #f5e1f7;
+  color: #C326A4;
+}
+
+/* Ubah warna slider */
+input[type="range"] {
+  margin-top: 10px;
+}
+
+/* Add custom styling for toggle and slider */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.switch input {
+  opacity: 0;
+  position: absolute;
+}
+
+.switch .slider {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 20px;
+  background-color: #ccc;
+  border-radius: 34px;
+}
+
+.switch .slider:before {
+  content: "";
+  position: absolute;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background-color: white;
+  transition: 0.4s;
+  left: 4px;
+  top: 4px;
+}
+
+.switch input:checked + .slider {
+  background-color: #C326A4;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(14px);
 }

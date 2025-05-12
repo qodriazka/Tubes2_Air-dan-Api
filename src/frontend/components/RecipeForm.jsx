@@ -5,7 +5,6 @@ import RecipeTree from "./RecipeTree";
 import StatsPanel from "./StatsPanel";
 
 const RecipeForm = ({ setResult }) => {
-  const [start, setStart] = useState("Water");
   const [target, setTarget] = useState("");
   const [algo, setAlgo] = useState("bfs");  // Defaultnya BFS
   const [mode, setMode] = useState("single");
@@ -17,12 +16,12 @@ const RecipeForm = ({ setResult }) => {
     e.preventDefault();
 
     if (!target) {
-      setError("Target element is required.");
+      setError("Masukin dulu targetnya!");
       return;
     }
 
     try {
-      const response = await fetchRecipes(start, target, algo, mode, max);
+      const response = await fetchRecipes(target, algo, mode, max);  // Removed start element
       setRecipeDataState(response);  // Set recipe data ke state lokal
       setResult(response);  // Set hasil ke parent (index.jsx)
       setError(null);  
@@ -35,18 +34,14 @@ const RecipeForm = ({ setResult }) => {
     setMode(prevMode => (prevMode === "multiple" ? "single" : "multiple"));
   };
 
+  // Function to handle algorithm button selection
+  const handleAlgoClick = (algorithm) => {
+    setAlgo(algorithm);
+  };
+
   return (
     <div>
       <form onSubmit={handleSubmit}>
-        <label>
-          Start Element:
-          <input
-            type="text"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-          />
-        </label>
-        <br />
         <label>
           Target Element:
           <input
@@ -56,41 +51,65 @@ const RecipeForm = ({ setResult }) => {
           />
         </label>
         <br />
-        <label>
-          Algorithm:
-          <select value={algo} onChange={(e) => setAlgo(e.target.value)}>
-            <option value="bfs">BFS</option>
-            <option value="dfs">DFS</option>
-            {/* <option value="bidirectional">Bidirectional</option> */}
-          </select>
-        </label>
+
+        <label>Algoritma:</label>
+        <div>
+          <button
+            type="button"
+            className={`algo-btn ${algo === "bfs" ? "active" : ""}`}
+            onClick={() => handleAlgoClick("bfs")}
+          >
+            BFS
+          </button>
+          <button
+            type="button"
+            className={`algo-btn ${algo === "dfs" ? "active" : ""}`}
+            onClick={() => handleAlgoClick("dfs")}
+          >
+            DFS
+          </button>
+          <button
+            type="button"
+            className={`algo-btn ${algo === "bidirectional" ? "active" : ""}`}
+            onClick={() => handleAlgoClick("bidirectional")}
+          >
+            Bidirectional
+          </button>
+        </div>
         <br />
+
         <div className="toggle-container">
           <label>Multiple Recipe:</label>
           <label className="switch">
             <input
-              type="checkbox"  // Tetap menggunakan checkbox
+              type="checkbox"
               checked={mode === "multiple"}
               onChange={handleToggleChange}
             />
-            <span className="slider"></span>  {/* Slider dari global.css */}
+            <span className="slider"></span>  {/* Slider from global.css */}
           </label>
         </div>
         <br />
+        
         {mode === "multiple" && (
           <>
             <label>
               Max Recipes:
               <input
-                type="number"
+                type="range"
+                min="1"
+                max="6"
                 value={max}
-                onChange={(e) => setMax(parseInt(e.target.value))}
+                onChange={(e) => setMax(e.target.value)}
+                className="recipe-slider"
               />
+              <span>{max}</span>
             </label>
             <br />
           </>
         )}
-        <button type="submit">Search</button>
+        
+        <button className="btn">Search</button>
       </form>
 
       {error && <p style={{ color: "red" }}>{error}</p>}
