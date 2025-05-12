@@ -1,12 +1,117 @@
+/* src/frontend/styles/global.css */
+
+/* Existing styles */
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 20px;
-  }
-  
-  form input, select, button {
-    margin: 5px;
-    padding: 6px;
-  }
-  
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 20px;
+}
+
+form input, select, button {
+  margin: 5px;
+  padding: 6px;
+}
+
+/* The switch - the box around the slider */
+.switch {
+  font-size: 14px; /* Mengurangi ukuran font */
+  position: relative;
+  display: inline-block;
+  width: 1.75em; /* Setengah lebih kecil dari sebelumnya */
+  height: 1em;   /* Setengah lebih kecil dari sebelumnya */
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: black;
+  border-radius: 50px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1em; /* Setengah lebih kecil dari sebelumnya */
+  width: 1em;  /* Setengah lebih kecil dari sebelumnya */
+  inset: 0;
+  background-color: white;
+  border-radius: 50px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.switch input:checked + .slider {
+  background: lime;
+}
+
+.switch input:focus + .slider {
+  box-shadow: 0 0 1px #0974f1;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(0.8em); /* Mengurangi pergeseran lebih kecil */
+}
+
+/* Kotak untuk elemen */
+.recipe-box {
+  display: inline-block;
+  padding: 10px;
+  margin: 10px;
+  background-color: #a2dff7;  /* Warna kotak elemen */
+  border-radius: 8px;
+  border: 2px solid #0f97d1;
+  text-align: center;
+  width: 100px;
+  font-weight: bold;
+}
+
+/* Garis penghubung antara elemen */
+.line {
+  position: absolute;
+  width: 2px;
+  background-color: #0f97d1;
+  transition: all 0.3s ease;
+}
+
+/* Panah antara elemen */
+.arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid #0f97d1;
+  transition: all 0.3s ease;
+}
+
+/* Gaya untuk visualisasi pohon */
+.recipe-tree-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.recipe-tree-branch {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.recipe-tree-branch > .line {
+  height: 20px;
+}
