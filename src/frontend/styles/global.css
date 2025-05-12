@@ -1,29 +1,21 @@
-/* src/frontend/styles/global.css */
-
-/* Existing styles */
 body {
   font-family: Arial, sans-serif;
-  background-color: #f9f9f9;
+  background-color: #f4f4f4;
   margin: 0;
   padding: 20px;
-  color: #333;
 }
 
 form input, select, button {
-  margin: 8px;
-  padding: 10px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  font-size: 14px;
+  margin: 5px;
+  padding: 6px;
 }
 
-/* The switch - the box around the slider */
 .switch {
-  font-size: 14px; /* Mengurangi ukuran font */
+  font-size: 14px;
   position: relative;
   display: inline-block;
-  width: 1.75em; /* Setengah lebih kecil dari sebelumnya */
-  height: 1em;   /* Setengah lebih kecil dari sebelumnya */
+  width: 1.75em; 
+  height: 1em;  
 }
 
 /* Hide default HTML checkbox */
@@ -67,57 +59,30 @@ form input, select, button {
 }
 
 .switch input:checked + .slider:before {
-  transform: translateX(0.8em); /* Mengurangi pergeseran lebih kecil */
+  transform: translateX(0.8em);
 }
 
-/* Kotak untuk elemen */
-.recipe-box {
-  display: inline-block;
-  padding: 10px;
-  margin: 10px;
-  background-color: #a2dff7;  /* Warna kotak elemen */
-  border-radius: 8px;
-  border: 2px solid #0f97d1;
-  text-align: center;
-  width: 100px;
-  font-weight: bold;
+#recipe-diagram {
+  margin: 0 auto;
+  padding: 20px;
 }
 
-/* Garis penghubung antara elemen */
-.line {
-  position: absolute;
-  width: 2px;
-  background-color: #0f97d1;
-  transition: all 0.3s ease;
+/* Kustomisasi kotak node */
+.e-diagram-node rect {
+  fill: #a2dff7;
+  stroke: #0f97d1;
+  stroke-width: 2px;
 }
 
-/* Panah antara elemen */
-.arrow {
-  position: absolute;
-  width: 0;
-  height: 0;
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-top: 10px solid #0f97d1;
-  transition: all 0.3s ease;
+/* Kustomisasi konektor */
+.e-diagram-connector path {
+  stroke: #0f97d1;
+  stroke-width: 2px;
 }
 
-/* Gaya untuk visualisasi pohon */
-.recipe-tree-container {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.recipe-tree-branch {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.recipe-tree-branch > .line {
-  height: 20px;
+/* Kustomisasi panah */
+.e-diagram-connector .e-arrowhead {
+  fill: #0f97d1;
 }
 
 button {
