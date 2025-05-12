@@ -42,7 +42,7 @@ func SetupRouter(g *utils.Graph) *gin.Engine {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid mode"})
 			return
 		}
-		if req.Algorithm != "bfs" && req.Algorithm != "dfs" {
+		if req.Algorithm != "bfs" && req.Algorithm != "dfs" && req.Algorithm != "bidirectional"{
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid algorithm"})
 			return
 		}
@@ -59,7 +59,10 @@ func SetupRouter(g *utils.Graph) *gin.Engine {
 				results, err = search.SearchBFS(g, req.Target)
 			case "dfs":
 				results, err = search.SearchDFS(g, req.Target)
+			case "bidirectional":
+				results, err = search.SearchBidirectional(g, req.Target)
 			}
+
 		} else {
 			if req.MaxRecipes <= 0 {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "max_recipes must be positive"})
