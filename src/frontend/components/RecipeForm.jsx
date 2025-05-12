@@ -1,4 +1,3 @@
-// src/components/RecipeForm.jsx
 import React, { useState } from "react";
 import { fetchRecipes } from "../utils/api";
 import RecipeTree from "./RecipeTree";
@@ -21,9 +20,9 @@ const RecipeForm = ({ setResult }) => {
     }
 
     try {
-      const response = await fetchRecipes(target, algo, mode, max);  // Removed start element
-      setRecipeDataState(response);  // Set recipe data ke state lokal
-      setResult(response);  // Set hasil ke parent (index.jsx)
+      const response = await fetchRecipes(target, algo, mode, max);  
+      setRecipeDataState(response);  
+      setResult(response); 
       setError(null);  
     } catch (err) {
       setError("An error occurred while fetching the recipe.");
@@ -86,7 +85,7 @@ const RecipeForm = ({ setResult }) => {
               checked={mode === "multiple"}
               onChange={handleToggleChange}
             />
-            <span className="slider"></span>  {/* Slider from global.css */}
+            <span className="slider"></span>  
           </label>
         </div>
         <br />

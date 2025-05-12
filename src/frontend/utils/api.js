@@ -1,4 +1,4 @@
-export const fetchRecipes = async (start, target, algo, mode, max) => {
+export const fetchRecipes = async (target, algo, mode, max) => {
   const requestBody = {
     target: target,
     algorithm: algo,

@@ -4,6 +4,7 @@ import RecipeForm from "../components/RecipeForm";
 
 export default function Home() {
   const [result, setResult] = useState(null);
+
   return (
     <>
       <Head>
@@ -16,14 +17,15 @@ export default function Home() {
           <p><strong>💧 Air dan Api 🔥</strong></p>
         </header>
 
+        {/* Pass the setResult function to RecipeForm, which will handle the result */}
         <RecipeForm setResult={setResult} />
+
+        {/* Only render RecipeTree and StatsPanel if result is available */}
         {result && (
           <div className="result-section">
-            <RecipeTree data={result} />
-            <StatsPanel data={result} />
+            {/* RecipeTree and StatsPanel are handled by RecipeForm itself */}
           </div>
         )}
-
       </div>
 
       <style jsx>{`
