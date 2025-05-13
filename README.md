@@ -42,8 +42,7 @@ npm install
 npm run dev
 ```
 
-## Author
-<div id="contributor">
+<div id="Author">
   <strong>
     <h3>Kontributor</h3>
     <table align="center">
