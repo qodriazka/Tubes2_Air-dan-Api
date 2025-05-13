@@ -17,9 +17,6 @@ type RequestBody struct {
 	MaxRecipes int    `json:"max_recipes"` // untuk multiple
 }
 
-// ResponseBody hasil akhir yang dikembalikan ke frontend
-// Disusun sebagai array SearchResult JSON langsung
-
 // SetupRouter membuat router HTTP dengan satu endpoint /search
 func SetupRouter(g *utils.Graph) *gin.Engine {
 	r := gin.Default()

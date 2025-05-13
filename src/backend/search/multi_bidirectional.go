@@ -10,7 +10,6 @@ import (
 	"tubes2/utils"
 )
 
-// SearchBidirectionalWithSeed is a variant of two-way BFS seeded with a fixed initial combo for target.
 func SearchBidirectionalWithSeed(
 	g *utils.Graph,
 	target string,

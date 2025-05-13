@@ -10,8 +10,6 @@ import (
 	"tubes2/utils"
 )
 
-// Di dalam multi_bfs.go, ganti SearchBFSWithPre dengan:
-
 // Study: BFS local, seeded dengan pre[target], tanpa mengubah g.Recipes
 func SearchBFSWithPre(
 	g *utils.Graph,
