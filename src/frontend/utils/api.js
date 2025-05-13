@@ -3,8 +3,10 @@ export const fetchRecipes = async (target, algo, mode, max) => {
     target: target,
     algorithm: algo,
     mode: mode,
-    max_recipes: mode === "multiple" ? max : 1,
   };
+  if (mode === "multiple") {
+    requestBody.max_recipes = parseInt(max);
+  }
 
   try {
     const response = await fetch("http://localhost:8080/search", {
@@ -20,7 +22,7 @@ export const fetchRecipes = async (target, algo, mode, max) => {
     }
 
     const data = await response.json();
-    return data;  // Mengembalikan data yang diterima dari backend
+    return data;  // Return data from the backend
   } catch (error) {
     console.error("Error fetching recipes:", error);
     throw error;

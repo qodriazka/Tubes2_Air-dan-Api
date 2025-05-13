@@ -21,7 +21,7 @@ const RecipeForm = ({ setResult }) => {
 
     try {
       const response = await fetchRecipes(target, algo, mode, max);  
-      setRecipeDataState(response);  
+      setRecipeDataState(response); 
       setResult(response); 
       setError(null);  
     } catch (err) {
@@ -85,7 +85,7 @@ const RecipeForm = ({ setResult }) => {
               checked={mode === "multiple"}
               onChange={handleToggleChange}
             />
-            <span className="slider"></span>  
+            <span className="slider"></span>  {/* Slider from global.css */}
           </label>
         </div>
         <br />
