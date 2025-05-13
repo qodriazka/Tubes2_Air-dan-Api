@@ -16,14 +16,9 @@ export default function Home() {
           <h1>Little Alchemy 2 Recipe Finder</h1>
           <p><strong>💧 Air dan Api 🔥</strong></p>
         </header>
-
-        {/* Pass the setResult function to RecipeForm, which will handle the result */}
         <RecipeForm setResult={setResult} />
-
-        {/* Only render RecipeTree and StatsPanel if result is available */}
         {result && (
           <div className="result-section">
-            {/* RecipeTree and StatsPanel are handled by RecipeForm itself */}
           </div>
         )}
       </div>
