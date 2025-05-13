@@ -11,7 +11,7 @@ Bidirectional search menjalankan dua BFS sekaligus—satu dari sumber dan satu d
 - Next.js
 
 ## Cara Menjalankan Program
-- Clone repositori ini dengan cara mengetik ini di terminal:
+- Clone repositori ini dengan cara mengetik ini di terminal (atau jika ada masalah maka dari Release download Assets -> Source Code (zip) -> Ekstrak zipnya):
 ```shell
 git clone https://github.com/qodriazka/Tubes2_Air-dan-Api.git
 ```
