@@ -44,7 +44,7 @@ npm run dev
 
 <div id="Author">
   <strong>
-    <h3>Kontributor</h3>
+    <h3>Author</h3>
     <table align="center">
       <tr>
         <td>NIM</td>
